@@ -241,9 +241,41 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:2px;padding:0 1p
 .hb .v{font:12px var(--mono);color:var(--ink-2);text-align:right}
 .hb.sel .lb{color:var(--accent);font-weight:600}
 
+.pm{position:fixed;inset:0;z-index:70;background:rgba(8,14,11,.6);display:grid;place-items:center;padding:24px}
+.pm-box{background:var(--surface);color:var(--ink);border-radius:12px;box-shadow:var(--shadow);width:min(1200px,100%);height:min(880px,100%);display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+.pm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line)}
+.pm-head h2{font:500 20px var(--serif);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm-body{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);min-height:0}
+.pm-form{overflow:auto;padding:16px 20px 30px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.pm-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.pm-form label.chk{flex-direction:row;align-items:center;gap:8px;font-weight:500;font-size:13px}
+.pm-form label.chk input{accent-color:var(--accent)}
+.pm-form label .hint{font-weight:400}
+.pm-form textarea.ctl{resize:vertical;font:14px/1.45 var(--sans)}
+.pm-form .pill[disabled]{opacity:.45;cursor:not-allowed}
+.pm-prev{overflow:auto;padding:16px 20px 30px;display:flex;flex-direction:column;gap:14px;background:var(--bg);min-width:0}
+.pm-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pm-imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.pm-imgs figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pm-imgs img{display:block;width:100%;height:auto;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.18),0 6px 16px rgba(0,0,0,.08);background:var(--surface-2)}
+.pm-imgs figcaption{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.pm-imgs a{color:var(--accent);font-weight:600;text-decoration:none}
+.pm-imgs a:hover{text-decoration:underline}
+.pm-warn{font-size:12.5px;color:var(--warn);margin:0}
+.pm-warn:empty{display:none}
+.pm-cap{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.pm-cap textarea{min-height:130px;resize:vertical;font:13px/1.5 var(--sans)}
+@media (max-width:900px){
+  .pm{padding:0}
+  .pm-box{border-radius:0;height:100%;width:100%;padding-top:env(safe-area-inset-top,0px)}
+  .pm-body{display:block;overflow:auto}
+  .pm-form{overflow:visible;border-right:0;border-bottom:1px solid var(--line)}
+  .pm-prev{overflow:visible}
+  .pm-imgs{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 .tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 9px;border-radius:6px;box-shadow:var(--shadow);white-space:nowrap;display:none}
 .tip b{font-variant-numeric:tabular-nums}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:60;display:none}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:80;display:none}
 .loading{display:grid;place-items:center;height:100%;color:var(--muted);font:italic 18px var(--serif)}
 .scrim{display:none}
 
@@ -380,6 +412,25 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:2px;padding:0 1p
 </div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast" role="status"></div>
+<div class="pm" id="pm" hidden role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+  <div class="pm-box">
+    <header class="pm-head"><h2 id="pmTitle">Criar post</h2><button class="act" type="button" id="pmClose">Fechar</button></header>
+    <div class="pm-body">
+      <form class="pm-form" id="pmForm" onsubmit="return false"></form>
+      <section class="pm-prev" aria-label="Imagens geradas">
+        <div class="pm-tools">
+          <button class="bigbtn primary" type="button" id="pmAll">Baixar todas</button>
+          <button class="bigbtn" type="button" id="pmShare" hidden>Compartilhar…</button>
+          <span class="hint" id="pmStatus" aria-live="polite"></span>
+        </div>
+        <p class="pm-warn" id="pmWarn"></p>
+        <div class="pm-imgs" id="pmImgs"></div>
+        <p class="hint" style="margin:0">Se o download não começar, clique com o botão direito na imagem (ou toque e segure, no celular) para salvá-la. No Instagram, publique as imagens na ordem numerada; nos stories, cole a figurinha de enquete no espaço livre abaixo da afirmação.</p>
+        <div class="pm-cap"><label for="pmCap">Legenda sugerida</label><textarea class="ctl" id="pmCap"></textarea><div><button class="act" type="button" id="pmCopy">Copiar legenda</button></div></div>
+      </section>
+    </div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -398,6 +449,7 @@ const IC = {
   check: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   copy: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="5" width="8.5" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3 11V3.5A1.5 1.5 0 0 1 4.5 2H10" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
   ext: '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 2h5v5M14 2L7.5 8.5M12 9.5V13a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  img: '<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="2.8" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="11.3" cy="4.7" r=".8" fill="currentColor"/></svg>',
   note: '<svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h10v8l-3 3H3z M10 13.5v-3h3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
 };
 
@@ -750,6 +802,7 @@ function renderReader() {
       <button class="act done" type="button" id="aDone" aria-pressed="${!!store.done[r.id]}">${IC.check} ${store.done[r.id] ? "Estudado" : "Marcar como estudado"}</button>
       <button class="act" type="button" id="aCopyAll">${IC.copy} Copiar julgado completo</button>
       <button class="act" type="button" id="aCopy">${IC.copy} Copiar citação</button>
+      <button class="act" type="button" id="aPost">${IC.img} Criar post</button>
       ${multi ? "" : `<a class="act" href="${portal(p0)}" target="_blank" rel="noopener">${IC.ext} Processo no portal do STF</a>`}
     </div>
     ${multi ? `<section class="sec"><h2>Processos julgados em conjunto (${r.procs.length})</h2><ul class="procs">${r.procs.map(p => `<li><a href="${portal(p)}" target="_blank" rel="noopener" title="Abrir no portal do STF">${esc(citeP(p))} ${IC.ext}</a><span>${esc(relName(p.rel))}${p.red >= 0 ? " · Redator: Min. " + esc(D.relatores[p.red]) : ""}${p.date && p.date !== r.date ? " · " + fmtDate(p.date) : ""}${p.rg && p.tema ? " · Tema " + dotNum(p.tema) : ""}</span></li>`).join("")}</ul></section>` : ""}
@@ -1009,6 +1062,7 @@ function renderLegis() {
     $("#dp").addEventListener("input", e => { if (e.target.id === "aq") { LG.aq = e.target.value; renderArts(); } });
     $("#dp").addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.post) { openPost({ lei: leiPostData() }); return; }
       if (b.dataset.a !== undefined) { const L = { d: LG.sel, a: b.dataset.a || null }; goExplorar(() => { S.lei = L; }, "Filtrando: " + leiLabel(L)); }
     });
   }
@@ -1036,7 +1090,7 @@ function renderDipPane() {
   const n = LG.count.get(d) || 0;
   const filt = res.length !== R.length || S.lei ? " no filtro atual" : "";
   $("#dp").innerHTML = `<div class="dhead"><div><div class="rd-kicker">${esc(D.diplomas[d][2])}</div><h2>${esc(name)}</h2>${ap ? `<div class="dim" style="font-size:14px">${esc(ap)}</div>` : ""}</div>
-    <button class="bigbtn primary" type="button" data-a="">Ver os ${fmtN(n)} julgados</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="bigbtn" type="button" data-post="1">Criar post</button><button class="bigbtn primary" type="button" data-a="">Ver os ${fmtN(n)} julgados</button></div></div>
     <p class="hint" style="margin:14px 0 0">Citado em ${fmtN(n)} ${n === 1 ? "julgado" : "julgados"}${filt}. Escolha um artigo para ver os julgados que o citam.</p>
     <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input class="ctl mono" id="aq" type="search" inputmode="numeric" placeholder="art. nº" aria-label="Ir para o artigo" style="width:120px" value="${esc(LG.aq)}"><span class="hint" id="acount"></span></div>
     <div class="arts" id="ag"></div>`;
@@ -1115,6 +1169,478 @@ function drawTemas() {
   }).join("") || `<div class="empty"><b>${dq ? "Nenhum tema com esse número" + filt + "." : "Nenhum tema de repercussão geral" + filt + "."}</b>${filt ? "Limpe os filtros ou a busca para ver todos os temas." : ""}</div>`;
 }
 
+/* ---------- Posts para o Instagram ---------- */
+const IG = { dark: "#143A2F", jade: "#1E5B48", paper: "#F4F5F0", ink: "#14201B", ink2: "#2F3D36", muted: "#5E6B64", mint: "#A9C7BA", mint2: "#CFE3DA",
+  mark: "#F6DE72", line: "#CBD4CE", box: "#E4EAE5", track: "#1E4A3C", red: "#9B2C1F" };
+const SERIF = "Newsreader, Georgia, serif", SANS = "'IBM Plex Sans', system-ui, sans-serif", MONO = "'IBM Plex Mono', ui-monospace, monospace";
+const PW = 1080;
+const CFDESC = { "1": "fundamentos da República", "2": "separação dos Poderes", "5": "direitos e garantias fundamentais", "7": "direitos dos trabalhadores",
+  "22": "competência privativa da União", "24": "competência concorrente", "37": "administração pública", "39": "servidores públicos",
+  "40": "previdência dos servidores", "61": "iniciativa das leis", "84": "competências do Presidente", "93": "Estatuto da Magistratura",
+  "96": "competência dos tribunais", "100": "precatórios", "102": "competência do STF", "109": "competência da Justiça Federal",
+  "129": "funções do Ministério Público", "144": "segurança pública", "146": "lei complementar tributária", "150": "limitações ao poder de tributar",
+  "155": "impostos estaduais", "170": "ordem econômica", "195": "contribuições da seguridade social" };
+
+let fontsP = null;
+function fontsReady() {
+  if (!fontsP) fontsP = Promise.all(["400 40px Newsreader", "500 40px Newsreader", "600 40px Newsreader", "italic 400 40px Newsreader",
+    "400 20px 'IBM Plex Sans'", "500 20px 'IBM Plex Sans'", "600 20px 'IBM Plex Sans'", "400 20px 'IBM Plex Mono'", "500 20px 'IBM Plex Mono'"]
+    .map(f => document.fonts.load(f).catch(() => null))).then(() => null);
+  return fontsP;
+}
+function mkCanvas(h, bg) {
+  const c = document.createElement("canvas"); c.width = PW; c.height = h;
+  const x = c.getContext("2d"); x.fillStyle = bg; x.fillRect(0, 0, PW, h); x.textBaseline = "alphabetic";
+  return [c, x];
+}
+function rr(x, X, Y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r);
+  x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath();
+}
+function spaced(x, px) { try { x.letterSpacing = px + "px"; } catch (e) {} }
+function txt(x, s, X, Y, font, color, align, ls) {
+  x.font = font; x.fillStyle = color; x.textAlign = align || "left"; spaced(x, ls || 0); x.fillText(s, X, Y); spaced(x, 0); x.textAlign = "left";
+  return x.measureText(s).width;
+}
+function pill(x, s, X, Y, o) {
+  const h = o.h || 50, padX = o.padX || 22;
+  x.font = o.font; spaced(x, o.ls ?? 1.5);
+  const w = x.measureText(s).width + padX * 2;
+  const X0 = o.alignRight ? X - w : X;
+  rr(x, X0, Y, w, h, h / 2);
+  if (o.bg) { x.fillStyle = o.bg; x.fill(); }
+  if (o.stroke) { x.strokeStyle = o.stroke; x.lineWidth = 2; x.stroke(); }
+  x.fillStyle = o.fg; x.textBaseline = "middle"; x.fillText(s, X0 + padX, Y + h / 2 + 1); x.textBaseline = "alphabetic"; spaced(x, 0);
+  return w;
+}
+function arrow(x, X, Y, color) {
+  x.save(); x.strokeStyle = color; x.lineWidth = 3; x.lineCap = "round"; x.lineJoin = "round";
+  x.beginPath(); x.moveTo(X, Y); x.lineTo(X + 30, Y); x.moveTo(X + 18, Y - 12); x.lineTo(X + 30, Y); x.lineTo(X + 18, Y + 12); x.stroke(); x.restore();
+}
+function plainTxt(s) { return String(s || "").replace(/==/g, ""); }
+
+/* Texto com destaques: "==trecho==" vira marca-texto */
+function tokenize(s) {
+  const src = String(s || ""), chars = [], marks = [];
+  let on = false;
+  for (let i = 0; i < src.length; i++) {
+    if (src[i] === "=" && src[i + 1] === "=") { on = !on; i++; continue; }
+    chars.push(src[i]); marks.push(on);
+  }
+  const str = chars.join(""), toks = [], re = /\n|[^\s]+/g; let m;
+  while ((m = re.exec(str))) {
+    if (m[0] === "\n") { toks.push({ br: true }); continue; }
+    const pieces = []; let cur = null;
+    for (let i = m.index; i < m.index + m[0].length; i++) {
+      if (!cur || cur.m !== marks[i]) { cur = { s: "", m: marks[i] }; pieces.push(cur); }
+      cur.s += str[i];
+    }
+    toks.push({ pieces });
+  }
+  return toks;
+}
+function layoutText(x, toks, font, maxW) {
+  x.font = font;
+  const sp = x.measureText(" ").width, lines = [];
+  let line = [], lx = 0, para = false;
+  const push = () => { lines.push({ toks: line, w: lx, para }); line = []; lx = 0; para = false; };
+  for (const t of toks) {
+    if (t.br) { if (line.length) push(); para = lines.length > 0; continue; }
+    for (const p of t.pieces) p.w = x.measureText(p.s).width;
+    const w = t.pieces.reduce((a, p) => a + p.w, 0);
+    if (line.length && lx + sp + w > maxW) push();
+    const at = line.length ? lx + sp : 0;
+    line.push({ pieces: t.pieces, x: at, w }); lx = at + w;
+  }
+  if (line.length) push();
+  return lines;
+}
+function textHeight(lines, lh) { return lines.length * lh + lines.filter(l => l.para).length * lh * 0.4; }
+function fitText(x, s, o) {
+  const toks = tokenize(s);
+  for (let size = o.max; size >= o.min; size -= 2) {
+    const font = `${o.style || ""} ${o.weight || 400} ${size}px ${o.family}`.trim();
+    const lines = layoutText(x, toks, font, o.maxW), lh = Math.round(size * (o.lh || 1.3));
+    const h = textHeight(lines, lh);
+    if (h <= o.maxH || size - 2 < o.min) return { lines, font, size, lh, h, over: h > o.maxH, toks };
+  }
+}
+function paginate(x, s, o) {
+  const f = fitText(x, s, o);
+  if (!f.over) return [f];
+  const pages = []; let cur = [], h = 0;
+  for (const l of f.lines) {
+    const lh = f.lh + (l.para ? f.lh * 0.4 : 0);
+    if (cur.length && h + lh > o.maxH) { pages.push(cur); cur = []; h = 0; }
+    cur.push(cur.length ? l : Object.assign({}, l, { para: false })); h += lh;
+  }
+  if (cur.length) pages.push(cur);
+  return pages.map(lines => ({ lines, font: f.font, size: f.size, lh: f.lh, h: textHeight(lines, f.lh), over: false }));
+}
+function drawText(x, f, X, Y, o) {
+  x.font = f.font; x.textBaseline = "alphabetic";
+  let y = Y + f.size * 0.82;
+  for (let li = 0; li < f.lines.length; li++) {
+    const l = f.lines[li];
+    if (l.para) y += f.lh * 0.4;
+    const off = o.align === "center" ? (o.maxW - l.w) / 2 : 0;
+    l.toks.forEach((t, ti) => {
+      let px = X + off + t.x;
+      t.pieces.forEach((p, pi) => {
+        if (p.m) {
+          const next = t.pieces[pi + 1] || (pi === t.pieces.length - 1 && l.toks[ti + 1] && l.toks[ti + 1].pieces[0]);
+          const ext = next && next.m && pi === t.pieces.length - 1 ? l.toks[ti + 1].x - (t.x + t.w) : 0;
+          x.fillStyle = o.markBg || IG.mark;
+          rr(x, px - 5, y - f.size * 0.8, p.w + 10 + ext, f.size * 1.02, 5); x.fill();
+        }
+        px += p.w;
+      });
+      px = X + off + t.x;
+      for (const p of t.pieces) { x.fillStyle = p.m ? (o.markFg || IG.ink) : o.color; x.fillText(p.s, px, y); px += p.w; }
+    });
+    y += f.lh;
+  }
+}
+function stamp(x, s, cx, cy, color, size, leftX) {
+  x.save(); x.font = `600 ${size}px ${SERIF}`; spaced(x, size * 0.04);
+  while (x.measureText(s).width + 110 > 920 && size > 50) { size -= 4; x.font = `600 ${size}px ${SERIF}`; spaced(x, size * 0.04); }
+  const w = x.measureText(s).width, pw = w + 100, ph = size + 70;
+  if (leftX != null) cx = leftX + pw / 2 + 12;
+  x.translate(cx, cy); x.rotate(-3 * Math.PI / 180);
+  rr(x, -pw / 2, -ph / 2, pw, ph, 16); x.lineWidth = 7; x.strokeStyle = color; x.stroke();
+  x.fillStyle = color; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(s, 0, 6);
+  x.restore(); spaced(x, 0);
+  return ph;
+}
+function header(x, dark, n, total) {
+  const c = dark ? IG.mint : IG.muted;
+  txt(x, "ATLAS DOS INFORMATIVOS", 80, 100, `400 24px ${MONO}`, c, "left", 2);
+  if (total > 1) txt(x, `${n}/${total}`, 1000, 100, `400 24px ${MONO}`, c, "right", 2);
+}
+function footer(x, h, left, right, o) {
+  const y = h - 80;
+  if (left) txt(x, left, 80, y, o.leftFont || `400 26px ${MONO}`, o.leftColor, "left");
+  if (right) {
+    x.font = o.rightFont || `500 28px ${SANS}`;
+    const w = x.measureText(right).width, ax = o.arrow ? 44 : 0;
+    txt(x, right, 1000 - ax, y, x.font, o.rightColor, "right");
+    if (o.arrow) arrow(x, 1000 - 32, y - 10, o.rightColor);
+  }
+}
+function label(x, s, X, Y, color, align) { return txt(x, s, X, Y, `600 26px ${SANS}`, color, align, 2.5); }
+function stack(items, top, bottom, gap) {
+  const total = items.reduce((a, it) => a + it.h, 0) + gap * (items.length - 1);
+  let y = top + Math.max(0, (bottom - top - total) / 2);
+  for (const it of items) { it.draw(y); y += it.h + gap; }
+}
+function bookmark(x, X, Y, s, color) {
+  x.save(); x.strokeStyle = color; x.lineWidth = 5; x.lineJoin = "round";
+  x.beginPath(); x.moveTo(X, Y); x.lineTo(X + s * 0.66, Y); x.lineTo(X + s * 0.66, Y + s); x.lineTo(X + s * 0.33, Y + s * 0.78); x.lineTo(X, Y + s); x.closePath(); x.stroke(); x.restore();
+}
+
+/* Conteúdo padrão a partir do julgado */
+const VERD_RE = /^(É|São)\s+(?:(?:formal|material)mente\s+(?:e\s+(?:formal|material)mente\s+)?)?(in)?(constitucion(?:al|ais)|válid[oa]s?|inválid[oa]s?|legítim[oa]s?|ilegítim[oa]s?|compatíve(?:l|is)|incompatíve(?:l|is)|lícit[oa]s?|ilícit[oa]s?|nul[oa]s?|cabíve(?:l|is)|incabíve(?:l|is))/iu;
+function verdict(s) {
+  const m = VERD_RE.exec(String(s || "").trim());
+  if (!m) return { label: "", marked: s || "" };
+  let lab = ((m[2] || "") + m[3]).toUpperCase().replace(/AIS$/, "AL").replace(/EIS$/, "EL").replace(/S$/, "");
+  const t = String(s).trim();
+  return { label: lab, marked: "==" + t.slice(0, m[0].length) + "==" + t.slice(m[0].length) };
+}
+function firstSentence(s) {
+  s = plainTxt(s).replace(/\s+/g, " ").trim();
+  const m = /^(.{40,}?[.;])(\s|$)/.exec(s);
+  let out = m ? m[1] : s;
+  if (out.length > 260) out = out.slice(0, 250).replace(/\s+\S*$/, "") + "…";
+  return out;
+}
+function mainTese(r) { return (r.temas.length && teseFor(r, r.temas[0])) || (r.teses[0] && r.teses[0].t) || ""; }
+function procsShort(r) {
+  const c = r.procs.map(citeP);
+  return c.length <= 2 ? c.join(" e ") : `${c[0]} e outros ${c.length - 1}`;
+}
+function tagOf(s) { return "#" + fold(s).replace(/[^a-z0-9]+(.)?/g, (_, ch) => ch ? ch.toUpperCase() : "").replace(/^./, ch => ch.toUpperCase()); }
+
+const PM = { tpl: "carrossel", r: null, lei: null, f: {}, urls: [], blobs: [], names: [], tok: 0 };
+let perfil = "";
+try { perfil = localStorage.getItem("atlas-stf-perfil") || ""; } catch (e) {}
+
+function postDefaults() {
+  const r = PM.r;
+  if (!r) {
+    const L = PM.lei, nm = L.name;
+    return { dTitle: `Os artigos ${nm === "CF/1988" ? "da Constituição" : "do diploma " + nm} que ==mais aparecem== no STF` };
+  }
+  const res = (r.ress[0] && r.ress[0].t) || "", tese = mainTese(r);
+  const v = verdict(res || tese);
+  return { hook: r.title, sub: "", caso: "", duvida: "", selo: v.label, seloSub: "", texto: res ? verdict(res).marked : "", tese, incTese: !!tese,
+    cta: "Salve para revisar antes da prova", ctaSub: "Toda semana, o que o STF decidiu.",
+    afirm: firstSentence(res || tese), resp: "CERTO", expl: verdict(res || tese).marked, titulo: r.title, teseCard: tese };
+}
+
+/* Modelos */
+function slidesCarrossel(r, f, warn) {
+  const S = [], ramo = r.ramos.length ? D.ramos[r.ramos[0]] : "";
+  const add = (dark, fn) => S.push({ h: 1350, dark, fn });
+  add(true, (x, n, t) => {
+    header(x, true, n, t);
+    const hook = fitText(x, f.hook, { family: SERIF, weight: 500, max: 100, min: 56, lh: 1.06, maxW: 920, maxH: 720 });
+    const sub = f.sub.trim() ? fitText(x, f.sub, { family: SANS, max: 34, min: 26, lh: 1.4, maxW: 840, maxH: 200 }) : null;
+    if (hook.over) warn.push("O gancho da capa está longo: encurte para caber sem cortes.");
+    const items = [{ h: 50, draw: y => { const w = pill(x, "O STF DECIDIU", 80, y, { font: `600 24px ${SANS}`, bg: IG.mark, fg: IG.ink }); if (ramo) pill(x, ramo, 80 + w + 12, y, { font: `500 24px ${SANS}`, stroke: "#4E7D6B", fg: IG.mint2, ls: 0.5 }); } },
+      { h: hook.h, draw: y => drawText(x, hook, 80, y, { color: IG.paper, maxW: 920 }) }];
+    if (sub) items.push({ h: sub.h, draw: y => drawText(x, sub, 80, y, { color: IG.mint2, maxW: 840 }) });
+    stack(items, 150, 1200, 44);
+    footer(x, 1350, `Informativo ${r.inf} · STF`, "Arraste", { leftColor: IG.mint, rightColor: IG.paper, arrow: true });
+  });
+  if (f.caso.trim() || f.duvida.trim()) add(false, (x, n, t) => {
+    header(x, false, n, t);
+    const items = [];
+    if (f.caso.trim()) {
+      const c = fitText(x, f.caso, { family: SERIF, max: 60, min: 38, lh: 1.22, maxW: 920, maxH: 560 });
+      items.push({ h: 30, draw: y => label(x, "O CASO", 80, y + 26, IG.jade) }, { h: c.h, draw: y => drawText(x, c, 80, y, { color: IG.ink, maxW: 920 }) });
+    }
+    if (f.duvida.trim()) {
+      const d = fitText(x, f.duvida, { family: SANS, max: 40, min: 30, lh: 1.4, maxW: 920, maxH: 300 });
+      items.push({ h: 80, draw: y => { x.fillStyle = IG.line; x.fillRect(80, y + 20, 920, 2); label(x, "A DÚVIDA", 80, y + 76, IG.jade); } },
+        { h: d.h, draw: y => drawText(x, d, 80, y, { color: IG.ink2, maxW: 920 }) });
+    }
+    stack(items, 150, 1200, 28);
+    footer(x, 1350, procsShort(r), "O que o STF disse", { leftColor: IG.muted, rightColor: IG.jade, arrow: true });
+  });
+  if (f.selo.trim()) add(true, (x, n, t) => {
+    header(x, true, n, t);
+    const sub = f.seloSub.trim() ? fitText(x, f.seloSub, { family: SERIF, max: 58, min: 40, lh: 1.2, maxW: 860, maxH: 300 }) : null;
+    const items = [{ h: 30, draw: y => label(x, "O VEREDITO", 540, y + 26, IG.mint, "center") },
+      { h: 230, draw: y => stamp(x, f.selo.trim().toUpperCase(), 540, y + 115, IG.mark, 104) }];
+    if (sub) items.push({ h: sub.h, draw: y => drawText(x, sub, 110, y, { color: IG.paper, maxW: 860, align: "center" }) });
+    stack(items, 150, 1200, 56);
+    footer(x, 1350, `${D.orgaos[r.org]} · ${fmtDate(r.date)}`, "Texto do Informativo", { leftColor: IG.mint, rightColor: IG.paper, arrow: true });
+  });
+  const textBlocks = [];
+  if (f.texto.trim()) textBlocks.push({ lab: "NAS PALAVRAS DO INFORMATIVO", foot: `Resumo · Informativo ${r.inf}`, s: f.texto });
+  if (f.incTese && f.tese.trim()) textBlocks.push({ lab: "TESE FIXADA" + (r.temas.length ? ` · TEMA ${dotNum(r.temas[0])}` : ""), foot: `Tese · Informativo ${r.inf}`, s: f.tese });
+  textBlocks.forEach(b => {
+    const pages = paginate(x0(), b.s, { family: SERIF, max: 50, min: 38, lh: 1.38, maxW: 920, maxH: 880 });
+    if (pages.length > 1) warn.push(`${b.lab === "TESE FIXADA" || b.lab.startsWith("TESE") ? "A tese" : "O resumo"} foi dividido em ${pages.length} slides.`);
+    pages.forEach((pg, i) => add(false, (x, n, t) => {
+      header(x, false, n, t);
+      const items = [{ h: 30, draw: y => label(x, b.lab + (pages.length > 1 ? ` (${i + 1}/${pages.length})` : ""), 80, y + 26, IG.jade) }];
+      if (i === 0) items.push({ h: 60, draw: y => txt(x, "“", 74, y + 118, `400 180px ${SERIF}`, IG.jade) });
+      items.push({ h: pg.h, draw: y => drawText(x, pg, 80, y, { color: IG.ink, maxW: 920 }) });
+      stack(items, 150, 1200, 36);
+      footer(x, 1350, b.foot, i < pages.length - 1 ? "Continua" : "Como citar", { leftColor: IG.muted, rightColor: IG.jade, arrow: true });
+    }));
+  });
+  add(false, (x, n, t) => {
+    header(x, false, n, t);
+    const c = fitText(x, citation(r), { family: MONO, max: 32, min: 20, lh: 1.55, maxW: 840, maxH: 460 });
+    const cta = fitText(x, f.cta, { family: SERIF, max: 52, min: 36, lh: 1.12, maxW: 680, maxH: 190 });
+    const ctaSub = f.ctaSub.trim() ? fitText(x, f.ctaSub, { family: SANS, max: 30, min: 24, lh: 1.35, maxW: 680, maxH: 90 }) : null;
+    const boxH = Math.max(150, cta.h + (ctaSub ? ctaSub.h + 10 : 0)) + 88;
+    stack([{ h: 30, draw: y => label(x, "PARA CITAR", 80, y + 26, IG.jade) },
+      { h: c.h + 72, draw: y => { rr(x, 80, y, 920, c.h + 72, 14); x.fillStyle = IG.box; x.fill(); drawText(x, c, 120, y + 36, { color: IG.ink, maxW: 840 }); } },
+      { h: 30, draw: () => {} },
+      { h: boxH, draw: y => {
+        rr(x, 80, y, 920, boxH, 18); x.fillStyle = IG.dark; x.fill();
+        bookmark(x, 136, y + boxH / 2 - 44, 88, IG.mark);
+        const ty = y + (boxH - cta.h - (ctaSub ? ctaSub.h + 10 : 0)) / 2;
+        drawText(x, cta, 260, ty, { color: IG.paper, maxW: 680 });
+        if (ctaSub) drawText(x, ctaSub, 260, ty + cta.h + 10, { color: IG.mint2, maxW: 680 });
+      } }], 150, 1200, 24);
+    footer(x, 1350, perfil ? "@" + perfil.replace(/^@/, "") : "", "Conteúdo não oficial · fonte: Informativos do STF",
+      { leftColor: IG.ink, leftFont: `600 28px ${SANS}`, rightColor: IG.muted, rightFont: `400 22px ${MONO}` });
+  });
+  return S;
+}
+let _x0;
+function x0() { if (!_x0) _x0 = document.createElement("canvas").getContext("2d"); return _x0; }
+
+function slidesQuiz(r, f, warn) {
+  const ramo = r.ramos.length ? D.ramos[r.ramos[0]] : "";
+  const certo = f.resp === "CERTO";
+  return [{ h: 1920, dark: true, fn: (x) => {
+    pill(x, "CERTO OU ERRADO?", 80, 200, { font: `600 34px ${SANS}`, bg: IG.mark, fg: IG.ink, h: 64, padX: 28 });
+    if (ramo) txt(x, ramo, 1000, 244, `400 26px ${MONO}`, IG.mint, "right");
+    const a = fitText(x, f.afirm, { family: SERIF, weight: 500, max: 88, min: 50, lh: 1.14, maxW: 920, maxH: 900 });
+    if (a.over) warn.push("A afirmação do quiz está longa: encurte para caber.");
+    drawText(x, a, 80, 340, { color: IG.paper, maxW: 920 });
+    footer(x, 1920 - 140, `Informativo ${r.inf} · STF`, "Resposta no próximo story", { leftColor: IG.mint, rightColor: IG.paper, arrow: true });
+  } }, { h: 1920, fn: (x) => {
+    label(x, "RESPOSTA", 80, 236, IG.jade);
+    stamp(x, certo ? "CERTO" : "ERRADO", 0, 430, certo ? IG.jade : IG.red, 150, 80);
+    const c = fitText(x, citation(r), { family: MONO, max: 30, min: 20, lh: 1.55, maxW: 848, maxH: 330 });
+    const top = 600, citeTop = 1920 - 220 - 60 - (c.h + 64);
+    const e = fitText(x, f.expl, { family: SERIF, max: 54, min: 32, lh: 1.36, maxW: 920, maxH: citeTop - top - 50 });
+    if (e.over) warn.push("A explicação da resposta está longa: encurte para caber no story.");
+    drawText(x, e, 80, top, { color: IG.ink, maxW: 920 });
+    rr(x, 80, citeTop, 920, c.h + 64, 14); x.fillStyle = IG.box; x.fill();
+    drawText(x, c, 116, citeTop + 32, { color: IG.ink, maxW: 848 });
+    footer(x, 1920 - 140, perfil ? "@" + perfil.replace(/^@/, "") : "", "Conteúdo não oficial",
+      { leftColor: IG.ink, leftFont: `600 28px ${SANS}`, rightColor: IG.muted, rightFont: `400 24px ${MONO}` });
+  } }];
+}
+
+function slidesTese(r, f, warn) {
+  const tema = r.temas[0];
+  return [{ h: 1350, fn: (x) => {
+    pill(x, "TESE DO DIA", 80, 70, { font: `600 24px ${SANS}`, bg: IG.dark, fg: IG.mark });
+    if (r.rg) txt(x, "REPERCUSSÃO GERAL", 1000, 104, `400 24px ${MONO}`, IG.muted, "right", 1.5);
+    const title = fitText(x, f.titulo, { family: SERIF, weight: 500, max: 46, min: 32, lh: 1.2, maxW: 920, maxH: 180 });
+    const topH = tema ? 190 : 0;
+    const avail = 1350 - 150 - 150 - topH - title.h - 70;
+    const t = fitText(x, f.teseCard, { family: SERIF, style: "italic", max: 38, min: 24, lh: 1.45, maxW: 920, maxH: avail });
+    if (t.over) warn.push("A tese não cabe num card: use o carrossel, que divide o texto em vários slides.");
+    const items = [];
+    if (tema) items.push({ h: topH, draw: y => { txt(x, "TEMA", 80, y + 160, `600 36px ${SANS}`, IG.jade, "left", 3); txt(x, dotNum(tema), 210, y + 170, `500 200px ${SERIF}`, IG.jade, "left", -4); } });
+    items.push({ h: title.h, draw: y => drawText(x, title, 80, y, { color: IG.ink, maxW: 920 }) },
+      { h: t.h + 40, draw: y => { x.fillStyle = IG.line; x.fillRect(80, y, 920, 2); drawText(x, t, 80, y + 40, { color: IG.ink2, maxW: 920 }); } });
+    stack(items, 150, 1210, 30);
+    const left = `${procsShort(r)} · Info ${r.inf}`;
+    footer(x, 1350, left.length > 52 ? `Informativo ${r.inf} · ${fmtDate(r.date)}` : left, perfil ? "@" + perfil.replace(/^@/, "") : "",
+      { leftColor: IG.muted, leftFont: `400 24px ${MONO}`, rightColor: IG.ink, rightFont: `600 26px ${SANS}` });
+  } }];
+}
+
+function slidesDados(L, f, warn) {
+  return [{ h: 1350, dark: true, fn: (x) => {
+    txt(x, "OS INFORMATIVOS DO STF EM NÚMEROS", 80, 100, `400 24px ${MONO}`, IG.mint, "left", 2);
+    const t = fitText(x, f.dTitle, { family: SERIF, weight: 500, max: 78, min: 52, lh: 1.1, maxW: 920, maxH: 300 });
+    drawText(x, t, 80, 140, { color: IG.paper, maxW: 920 });
+    const rows = L.rows, max = Math.max(1, ...rows.map(r => r.c));
+    let y = 140 + t.h + 90;
+    const rowH = Math.min(150, (1350 - 230 - y) / rows.length);
+    rows.forEach(row => {
+      const w1 = txt(x, row.lab, 80, y + 46, `500 46px ${SERIF}`, IG.paper);
+      if (row.desc) txt(x, row.desc, 80 + w1 + 16, y + 46, `400 26px ${SANS}`, IG.mint);
+      txt(x, fmtN(row.c), 1000, y + 46, `400 36px ${MONO}`, IG.mark, "right");
+      rr(x, 80, y + 70, 920, 22, 6); x.fillStyle = IG.track; x.fill();
+      rr(x, 80, y + 70, Math.max(8, 920 * row.c / max), 22, 6); x.fillStyle = IG.mark; x.fill();
+      y += rowH;
+    });
+    const note = fitText(x, L.note, { family: SANS, max: 22, min: 18, lh: 1.45, maxW: 700, maxH: 110 });
+    drawText(x, note, 80, 1350 - 80 - note.h + 8, { color: IG.mint, maxW: 700 });
+    if (perfil) txt(x, "@" + perfil.replace(/^@/, ""), 1000, 1270, `600 26px ${SANS}`, IG.paper, "right");
+  } }];
+}
+
+function postCaption() {
+  const f = PM.f, r = PM.r;
+  if (!r) return `${plainTxt(f.dTitle)}\n\n${PM.lei.rows.map(x => `${x.lab}${x.desc ? " (" + x.desc + ")" : ""}: ${fmtN(x.c)} julgados`).join("\n")}\n\n${PM.lei.note}\n\n#STF #Jurisprudência #DireitoConstitucional #Concursos #OAB`;
+  const tags = ["#STF", "#Jurisprudência", `#Informativo${r.inf}`, ...r.ramos.slice(0, 2).map(i => tagOf(D.ramos[i])), "#Concursos", "#OAB"].join(" ");
+  if (PM.tpl === "quiz") return `Certo ou errado? ${plainTxt(f.afirm)}\n\nResposta: ${f.resp === "CERTO" ? "certo" : "errado"}.\n\n${plainTxt(f.expl)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
+  if (PM.tpl === "tese") return `${r.temas.length ? `Tema ${dotNum(r.temas[0])} da Repercussão Geral` : "Tese fixada"}: ${plainTxt(f.titulo)}\n\n${plainTxt(f.teseCard)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
+  return `${plainTxt(f.hook)}\n\n${plainTxt(f.texto || f.tese)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
+}
+
+function postForm() {
+  const f = PM.f, r = PM.r;
+  const ta = (k, lab, rows, hint) => `<label for="pf-${k}">${lab}<textarea class="ctl" id="pf-${k}" data-f="${k}" rows="${rows || 3}">${esc(f[k] || "")}</textarea>${hint ? `<span class="hint">${hint}</span>` : ""}</label>`;
+  const inp = (k, lab, ph) => `<label for="pf-${k}">${lab}<input class="ctl" id="pf-${k}" data-f="${k}" value="${esc(f[k] || "")}" placeholder="${esc(ph || "")}"></label>`;
+  const tabs = r ? [["carrossel", "Carrossel"], ["quiz", "Story quiz"], ["tese", "Tese do dia"]] : [["dados", "Post de dados"]];
+  const hasTese = r && !!mainTese(r);
+  let h = `<div class="seg" role="group" aria-label="Modelo">${tabs.map(([k, l]) => `<button type="button" class="pill" data-tpl="${k}" aria-pressed="${PM.tpl === k}" ${k === "tese" && !hasTese ? "disabled title=\"Este julgado não tem tese registrada\"" : ""}>${l}</button>`).join("")}</div>`;
+  if (PM.tpl === "carrossel") h += ta("hook", "Gancho da capa", 3, "Uma pergunta costuma funcionar melhor que o título.") + inp("sub", "Linha de apoio (opcional)") +
+    ta("caso", "O caso (opcional)", 3, "Preenchido, cria o slide “O caso”.") + ta("duvida", "A dúvida (opcional)", 2) +
+    inp("selo", "Selo do veredito", "Ex.: CONSTITUCIONAL · vazio omite o slide") + inp("seloSub", "Frase do veredito (opcional)") +
+    ta("texto", "Resumo do Informativo", 5) + (f.tese ? `<label class="chk" for="pf-incTese"><input type="checkbox" id="pf-incTese" data-f="incTese" ${f.incTese ? "checked" : ""}> Incluir slide com a tese fixada</label>` + ta("tese", "Tese fixada", 4) : "") +
+    inp("cta", "Chamada final") + inp("ctaSub", "Linha de apoio da chamada");
+  if (PM.tpl === "quiz") h += ta("afirm", "Afirmação (story 1)", 4, "Para uma pergunta “errada”, reescreva a afirmação trocando o sentido e marque a resposta como Errado.") +
+    `<label for="pf-resp">Resposta<select class="ctl" id="pf-resp" data-f="resp"><option value="CERTO" ${f.resp === "CERTO" ? "selected" : ""}>Certo</option><option value="ERRADO" ${f.resp === "ERRADO" ? "selected" : ""}>Errado</option></select></label>` +
+    ta("expl", "Explicação (story 2)", 5);
+  if (PM.tpl === "tese") h += inp("titulo", "Título") + ta("teseCard", "Tese", 7);
+  if (PM.tpl === "dados") h += ta("dTitle", "Título", 3);
+  h += `<label for="pf-perfil">Seu @ no Instagram<input class="ctl" id="pf-perfil" data-perfil="1" value="${esc(perfil)}" placeholder="seuperfil" autocomplete="off"></label>`;
+  h += `<p class="hint">Use <span class="mono">==trecho==</span> para destacar em amarelo.${r ? ' <button type="button" class="linkbtn" id="pfReset">Restaurar textos originais</button>' : ""}</p>`;
+  $("#pmForm").innerHTML = h;
+}
+
+function openPost(ctx) {
+  PM.r = ctx.r || null; PM.lei = ctx.lei || null;
+  PM.tpl = PM.r ? "carrossel" : "dados";
+  PM.f = postDefaults();
+  $("#pmTitle").textContent = PM.r ? `Criar post · ${procsShort(PM.r)}` : `Criar post · ${PM.lei.name}`;
+  postForm();
+  $("#pm").hidden = false;
+  $("#pmClose").focus();
+  renderPost();
+}
+function closePost() {
+  $("#pm").hidden = true;
+  PM.urls.forEach(u => URL.revokeObjectURL(u)); PM.urls = []; PM.blobs = [];
+}
+let postT;
+function renderPostSoon() { clearTimeout(postT); postT = setTimeout(renderPost, 250); }
+async function renderPost() {
+  const tok = ++PM.tok;
+  $("#pmStatus").textContent = "Gerando imagens…";
+  await fontsReady();
+  if (tok !== PM.tok) return;
+  const warn = [], f = PM.f, r = PM.r;
+  const specs = PM.tpl === "carrossel" ? slidesCarrossel(r, f, warn) : PM.tpl === "quiz" ? slidesQuiz(r, f, warn) : PM.tpl === "tese" ? slidesTese(r, f, warn) : slidesDados(PM.lei, f, warn);
+  const canvases = specs.map((s, i) => {
+    const dark = !!s.dark;
+    const [c, x] = mkCanvas(s.h, dark ? IG.dark : IG.paper);
+    s.fn(x, i + 1, specs.length);
+    return c;
+  });
+  const blobs = await Promise.all(canvases.map(c => new Promise(res => c.toBlob(res, "image/png"))));
+  if (tok !== PM.tok) return;
+  PM.urls.forEach(u => URL.revokeObjectURL(u));
+  const base = r ? `atlas-info${r.inf}-${(r.procs[0].cls + r.procs[0].num).toLowerCase()}-${PM.tpl}` : `atlas-dados-${fold(PM.lei.name).replace(/[^a-z0-9]+/g, "")}`;
+  PM.blobs = blobs; PM.urls = blobs.map(b => URL.createObjectURL(b));
+  PM.names = blobs.map((_, i) => `${base}-${i + 1}.png`);
+  $("#pmImgs").innerHTML = PM.urls.map((u, i) => `<figure><img src="${u}" alt="Imagem ${i + 1} de ${PM.urls.length}" style="aspect-ratio:1080/${specs[i].h}"><figcaption><span>${i + 1}/${PM.urls.length} · 1080×${specs[i].h}</span><a href="${u}" download="${PM.names[i]}">Baixar</a></figcaption></figure>`).join("");
+  $("#pmWarn").textContent = warn.join(" ");
+  $("#pmStatus").textContent = `${PM.urls.length} ${PM.urls.length === 1 ? "imagem pronta" : "imagens prontas"}`;
+  $("#pmCap").value = postCaption();
+  let canShare = false;
+  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([blobs[0]], PM.names[0], { type: "image/png" })] })); } catch (e) {}
+  $("#pmShare").hidden = !canShare;
+}
+async function downloadAll() {
+  for (let i = 0; i < PM.urls.length; i++) {
+    const a = document.createElement("a"); a.href = PM.urls[i]; a.download = PM.names[i];
+    document.body.appendChild(a); a.click(); a.remove();
+    await new Promise(r => setTimeout(r, 350));
+  }
+}
+async function sharePost() {
+  const files = PM.blobs.map((b, i) => new File([b], PM.names[i], { type: "image/png" }));
+  try { await navigator.share({ files, text: $("#pmCap").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Não foi possível compartilhar. Baixe as imagens."); }
+}
+function leiPostData() {
+  const d = LG.sel, name = D.diplomas[d][0], ac = new Map();
+  for (const r of resNoLei) for (const x of r.lei) if (x[0] === d) for (const a of x[1]) ac.set(a, (ac.get(a) || 0) + 1);
+  const rows = [...ac.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([a, c]) => ({ lab: "art. " + artLabel(a), desc: name === "CF/1988" ? (CFDESC[a] || "") : "", c }));
+  const infs = resNoLei.map(r => r.inf), filt = res.length !== R.length || S.lei;
+  const years = resNoLei.map(r => r.year).filter(Boolean);
+  const note = `Julgados que citam cada artigo. Informativos ${Math.min(...infs)} a ${Math.max(...infs)} (${Math.min(...years)}–${Math.max(...years)}), ${fmtN(resNoLei.length)} julgados${filt ? " no filtro aplicado" : ""}. Conteúdo não oficial.`;
+  return { d, name, rows, note };
+}
+function bindPost() {
+  $("#pmClose").addEventListener("click", closePost);
+  $("#pm").addEventListener("click", e => { if (e.target.id === "pm") closePost(); });
+  $("#pmForm").addEventListener("input", e => {
+    const el = e.target;
+    if (el.dataset.perfil) { perfil = el.value.trim().replace(/^@/, ""); try { localStorage.setItem("atlas-stf-perfil", perfil); } catch (er) {} renderPostSoon(); return; }
+    const k = el.dataset.f; if (!k) return;
+    PM.f[k] = el.type === "checkbox" ? el.checked : el.value;
+    renderPostSoon();
+  });
+  $("#pmForm").addEventListener("change", e => { if (e.target.type === "checkbox" || e.target.tagName === "SELECT") { PM.f[e.target.dataset.f] = e.target.type === "checkbox" ? e.target.checked : e.target.value; renderPostSoon(); } });
+  $("#pmForm").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.tpl && !b.disabled) { PM.tpl = b.dataset.tpl; postForm(); renderPost(); }
+    else if (b.id === "pfReset") { PM.f = postDefaults(); postForm(); renderPost(); toast("Textos restaurados"); }
+  });
+  $("#pmAll").addEventListener("click", downloadAll);
+  $("#pmShare").addEventListener("click", sharePost);
+  $("#pmCopy").addEventListener("click", () => copyText($("#pmCap").value, "Legenda copiada"));
+}
+
 /* ---------- Abas ---------- */
 function setTab(t) {
   tab = t;
@@ -1129,6 +1655,7 @@ function setTab(t) {
 
 /* ---------- Eventos ---------- */
 function bind() {
+  bindPost();
   let qT;
   $("#q").addEventListener("input", e => { clearTimeout(qT); qT = setTimeout(() => { S.q = e.target.value; if (S.q.trim() && S.sort === "rec" && !S._sortTouched) S.sort = "rel"; if (!S.q.trim() && S.sort === "rel") S.sort = "rec"; syncControls(); apply(); }, 180); });
   $("#teor").addEventListener("change", e => {
@@ -1170,6 +1697,7 @@ function bind() {
     if (t.id === "aFav") toggleFav(r.id);
     else if (t.id === "aDone") toggleDone(r.id);
     else if (t.id === "aCopy") copyText(citation(r));
+    else if (t.id === "aPost") openPost({ r });
     else if (t.id === "aCopyTese") copyText(textsPlain(r, r.teses), r.teses.length > 1 ? "Teses copiadas" : "Tese copiada");
     else if (t.id === "aCopyRes") copyText(textsPlain(r, r.ress), "Resumo copiado");
     else if (t.id === "aCopyAll") {
@@ -1206,6 +1734,7 @@ function bind() {
   addEventListener("hashchange", () => { const h = location.hash.slice(1); if (TABS.includes(h) && h !== tab) setTab(h); });
 
   document.addEventListener("keydown", e => {
+    if (!$("#pm").hidden) { if (e.key === "Escape") closePost(); return; }
     const tag = (e.target.tagName || "").toLowerCase();
     const typing = tag === "input" || tag === "textarea" || tag === "select";
     if (e.key === "/" && !typing) { e.preventDefault(); $("#q").focus(); return; }

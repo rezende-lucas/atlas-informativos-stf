@@ -11,6 +11,7 @@ Ferramenta de estudo dos Informativos do Supremo Tribunal Federal (1995–2026):
 - **Panorama**: gráficos por ano, ramo, relatoria, classe e órgão.
 - **Legislação**: diplomas e artigos citados nos julgados. Clique num artigo para ver os julgados que o citam.
 - **Temas RG**: temas de repercussão geral com a tese e os julgados de cada um.
+- **Criar post**: no leitor, gera imagens para o Instagram a partir do julgado (carrossel 1080×1350, stories de quiz 1080×1920 e card "Tese do dia"), com legenda pronta. Na aba Legislação, gera um post de dados com os artigos mais citados. As imagens são desenhadas no próprio navegador e podem ser baixadas ou, no celular, compartilhadas direto.
 
 Julgados publicados no mesmo informativo com notícia idêntica (processos julgados em conjunto) aparecem unificados.
 
