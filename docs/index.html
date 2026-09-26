@@ -425,8 +425,8 @@ mark{background:var(--mark);color:var(--mark-ink);border-radius:2px;padding:0 1p
         </div>
         <p class="pm-warn" id="pmWarn"></p>
         <div class="pm-imgs" id="pmImgs"></div>
-        <p class="hint" style="margin:0">Se o download não começar, clique com o botão direito na imagem (ou toque e segure, no celular) para salvá-la. No Instagram, publique as imagens na ordem numerada; nos stories, cole a figurinha de enquete no espaço livre abaixo da afirmação.</p>
-        <div class="pm-cap"><label for="pmCap">Legenda sugerida</label><textarea class="ctl" id="pmCap"></textarea><div><button class="act" type="button" id="pmCopy">Copiar legenda</button></div></div>
+        <p class="hint" style="margin:0">Se o download não começar, clique com o botão direito na imagem (ou toque e segure, no celular) para salvá-la. No Instagram, publique as imagens na ordem numerada; nos stories, cole a figurinha de enquete no espaço livre abaixo da afirmação. Os textos ficam sempre dentro da imagem e fora das áreas que a interface do Instagram cobre; quando não cabem, viram mais slides ou stories.</p>
+        <div class="pm-cap"><label for="pmCap">Legenda sugerida</label><textarea class="ctl" id="pmCap"></textarea><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><button class="act" type="button" id="pmCopy">Copiar legenda</button><span class="hint" id="pmCapCount"></span></div></div>
       </section>
     </div>
   </div>
@@ -1266,17 +1266,33 @@ function fitText(x, s, o) {
     if (h <= o.maxH || size - 2 < o.min) return { lines, font, size, lh, h, over: h > o.maxH, toks };
   }
 }
-function paginate(x, s, o) {
-  const f = fitText(x, s, o);
-  if (!f.over) return [f];
+function splitLines(f, firstH, restH) {
   const pages = []; let cur = [], h = 0;
   for (const l of f.lines) {
-    const lh = f.lh + (l.para ? f.lh * 0.4 : 0);
-    if (cur.length && h + lh > o.maxH) { pages.push(cur); cur = []; h = 0; }
-    cur.push(cur.length ? l : Object.assign({}, l, { para: false })); h += lh;
+    const add = f.lh + (l.para && cur.length ? f.lh * 0.4 : 0), cap = pages.length ? restH : firstH;
+    if (cur.length && h + add > cap) { pages.push(cur); cur = []; h = 0; }
+    const first = !cur.length;
+    cur.push(first ? Object.assign({}, l, { para: false }) : l); h += first ? f.lh : add;
   }
   if (cur.length) pages.push(cur);
   return pages.map(lines => ({ lines, font: f.font, size: f.size, lh: f.lh, h: textHeight(lines, f.lh), over: false }));
+}
+function paginate(x, s, o, restH) {
+  const f = fitText(x, s, o);
+  return f.over ? splitLines(f, o.maxH, restH || o.maxH) : [f];
+}
+/* Nunca desenha além da caixa: reduz a fonte e, no limite, corta com reticências */
+function fitSafe(x, s, o, warn, what) {
+  const f = fitText(x, s, o);
+  if (!f.over) return f;
+  const floor = Math.max(16, Math.round(o.min * 0.75));
+  const g = o.min - 2 >= floor ? fitText(x, s, Object.assign({}, o, { max: o.min - 2, min: floor })) : f;
+  if (!g.over) { if (warn) warn.push(`${what}: texto longo, a fonte foi reduzida para caber.`); return g; }
+  const keep = splitLines(g, o.maxH, o.maxH)[0];
+  const last = keep.lines[keep.lines.length - 1];
+  if (last && last.toks.length) { const t = last.toks[last.toks.length - 1], pc = t.pieces[t.pieces.length - 1]; pc.s = pc.s.replace(/[.,;:]?$/, "…"); }
+  if (warn) warn.push(`${what}: texto longo demais, foi cortado com “…”. Encurte o texto.`);
+  return keep;
 }
 function drawText(x, f, X, Y, o) {
   x.font = f.font; x.textBaseline = "alphabetic";
@@ -1385,9 +1401,8 @@ function slidesCarrossel(r, f, warn) {
   const add = (dark, fn) => S.push({ h: 1350, dark, fn });
   add(true, (x, n, t) => {
     header(x, true, n, t);
-    const hook = fitText(x, f.hook, { family: SERIF, weight: 500, max: 100, min: 56, lh: 1.06, maxW: 920, maxH: 720 });
-    const sub = f.sub.trim() ? fitText(x, f.sub, { family: SANS, max: 34, min: 26, lh: 1.4, maxW: 840, maxH: 200 }) : null;
-    if (hook.over) warn.push("O gancho da capa está longo: encurte para caber sem cortes.");
+    const hook = fitSafe(x, f.hook, { family: SERIF, weight: 500, max: 100, min: 56, lh: 1.06, maxW: 920, maxH: 690 }, warn, "Gancho da capa");
+    const sub = f.sub.trim() ? fitSafe(x, f.sub, { family: SANS, max: 34, min: 26, lh: 1.4, maxW: 840, maxH: 200 }, warn, "Linha de apoio") : null;
     const items = [{ h: 50, draw: y => { const w = pill(x, "O STF DECIDIU", 80, y, { font: `600 24px ${SANS}`, bg: IG.mark, fg: IG.ink }); if (ramo) pill(x, ramo, 80 + w + 12, y, { font: `500 24px ${SANS}`, stroke: "#4E7D6B", fg: IG.mint2, ls: 0.5 }); } },
       { h: hook.h, draw: y => drawText(x, hook, 80, y, { color: IG.paper, maxW: 920 }) }];
     if (sub) items.push({ h: sub.h, draw: y => drawText(x, sub, 80, y, { color: IG.mint2, maxW: 840 }) });
@@ -1398,11 +1413,11 @@ function slidesCarrossel(r, f, warn) {
     header(x, false, n, t);
     const items = [];
     if (f.caso.trim()) {
-      const c = fitText(x, f.caso, { family: SERIF, max: 60, min: 38, lh: 1.22, maxW: 920, maxH: 560 });
+      const c = fitSafe(x, f.caso, { family: SERIF, max: 60, min: 38, lh: 1.22, maxW: 920, maxH: 520 }, warn, "O caso");
       items.push({ h: 30, draw: y => label(x, "O CASO", 80, y + 26, IG.jade) }, { h: c.h, draw: y => drawText(x, c, 80, y, { color: IG.ink, maxW: 920 }) });
     }
     if (f.duvida.trim()) {
-      const d = fitText(x, f.duvida, { family: SANS, max: 40, min: 30, lh: 1.4, maxW: 920, maxH: 300 });
+      const d = fitSafe(x, f.duvida, { family: SANS, max: 40, min: 30, lh: 1.4, maxW: 920, maxH: 280 }, warn, "A dúvida");
       items.push({ h: 80, draw: y => { x.fillStyle = IG.line; x.fillRect(80, y + 20, 920, 2); label(x, "A DÚVIDA", 80, y + 76, IG.jade); } },
         { h: d.h, draw: y => drawText(x, d, 80, y, { color: IG.ink2, maxW: 920 }) });
     }
@@ -1411,7 +1426,7 @@ function slidesCarrossel(r, f, warn) {
   });
   if (f.selo.trim()) add(true, (x, n, t) => {
     header(x, true, n, t);
-    const sub = f.seloSub.trim() ? fitText(x, f.seloSub, { family: SERIF, max: 58, min: 40, lh: 1.2, maxW: 860, maxH: 300 }) : null;
+    const sub = f.seloSub.trim() ? fitSafe(x, f.seloSub, { family: SERIF, max: 58, min: 40, lh: 1.2, maxW: 860, maxH: 300 }, warn, "Frase do veredito") : null;
     const items = [{ h: 30, draw: y => label(x, "O VEREDITO", 540, y + 26, IG.mint, "center") },
       { h: 230, draw: y => stamp(x, f.selo.trim().toUpperCase(), 540, y + 115, IG.mark, 104) }];
     if (sub) items.push({ h: sub.h, draw: y => drawText(x, sub, 110, y, { color: IG.paper, maxW: 860, align: "center" }) });
@@ -1435,20 +1450,25 @@ function slidesCarrossel(r, f, warn) {
   });
   add(false, (x, n, t) => {
     header(x, false, n, t);
-    const c = fitText(x, citation(r), { family: MONO, max: 32, min: 20, lh: 1.55, maxW: 840, maxH: 460 });
-    const cta = fitText(x, f.cta, { family: SERIF, max: 52, min: 36, lh: 1.12, maxW: 680, maxH: 190 });
-    const ctaSub = f.ctaSub.trim() ? fitText(x, f.ctaSub, { family: SANS, max: 30, min: 24, lh: 1.35, maxW: 680, maxH: 90 }) : null;
+    let c = fitText(x, citation(r), { family: MONO, max: 32, min: 20, lh: 1.55, maxW: 840, maxH: 460 });
+    const semCta = c.over;
+    if (semCta) {
+      c = fitSafe(x, citation(r), { family: MONO, max: 28, min: 18, lh: 1.5, maxW: 840, maxH: 880 }, warn, "Citação");
+      warn.push("A citação é longa (muitos processos): a chamada final foi omitida do último slide.");
+    }
+    const cta = fitSafe(x, f.cta, { family: SERIF, max: 52, min: 36, lh: 1.12, maxW: 680, maxH: 190 }, warn, "Chamada final");
+    const ctaSub = f.ctaSub.trim() ? fitSafe(x, f.ctaSub, { family: SANS, max: 30, min: 24, lh: 1.35, maxW: 680, maxH: 90 }, warn, "Linha de apoio da chamada") : null;
     const boxH = Math.max(150, cta.h + (ctaSub ? ctaSub.h + 10 : 0)) + 88;
-    stack([{ h: 30, draw: y => label(x, "PARA CITAR", 80, y + 26, IG.jade) },
-      { h: c.h + 72, draw: y => { rr(x, 80, y, 920, c.h + 72, 14); x.fillStyle = IG.box; x.fill(); drawText(x, c, 120, y + 36, { color: IG.ink, maxW: 840 }); } },
-      { h: 30, draw: () => {} },
-      { h: boxH, draw: y => {
+    const items = [{ h: 30, draw: y => label(x, "PARA CITAR", 80, y + 26, IG.jade) },
+      { h: c.h + 72, draw: y => { rr(x, 80, y, 920, c.h + 72, 14); x.fillStyle = IG.box; x.fill(); drawText(x, c, 120, y + 36, { color: IG.ink, maxW: 840 }); } }];
+    if (!semCta) items.push({ h: 30, draw: () => {} }, { h: boxH, draw: y => {
         rr(x, 80, y, 920, boxH, 18); x.fillStyle = IG.dark; x.fill();
         bookmark(x, 136, y + boxH / 2 - 44, 88, IG.mark);
         const ty = y + (boxH - cta.h - (ctaSub ? ctaSub.h + 10 : 0)) / 2;
         drawText(x, cta, 260, ty, { color: IG.paper, maxW: 680 });
         if (ctaSub) drawText(x, ctaSub, 260, ty + cta.h + 10, { color: IG.mint2, maxW: 680 });
-      } }], 150, 1200, 24);
+      } });
+    stack(items, 150, 1200, 24);
     footer(x, 1350, perfil ? "@" + perfil.replace(/^@/, "") : "", "Conteúdo não oficial · fonte: Informativos do STF",
       { leftColor: IG.ink, leftFont: `600 28px ${SANS}`, rightColor: IG.muted, rightFont: `400 22px ${MONO}` });
   });
@@ -1457,56 +1477,66 @@ function slidesCarrossel(r, f, warn) {
 let _x0;
 function x0() { if (!_x0) _x0 = document.createElement("canvas").getContext("2d"); return _x0; }
 
+/* Área segura dos stories: o Instagram cobre ~250 px no topo (barra e perfil) e ~300 px no rodapé (campo de mensagem) */
+const ST = { top: 260, bottom: 1600 };
 function slidesQuiz(r, f, warn) {
   const ramo = r.ramos.length ? D.ramos[r.ramos[0]] : "";
   const certo = f.resp === "CERTO";
-  return [{ h: 1920, dark: true, fn: (x) => {
-    pill(x, "CERTO OU ERRADO?", 80, 200, { font: `600 34px ${SANS}`, bg: IG.mark, fg: IG.ink, h: 64, padX: 28 });
-    if (ramo) txt(x, ramo, 1000, 244, `400 26px ${MONO}`, IG.mint, "right");
-    const a = fitText(x, f.afirm, { family: SERIF, weight: 500, max: 88, min: 50, lh: 1.14, maxW: 920, maxH: 900 });
-    if (a.over) warn.push("A afirmação do quiz está longa: encurte para caber.");
-    drawText(x, a, 80, 340, { color: IG.paper, maxW: 920 });
-    footer(x, 1920 - 140, `Informativo ${r.inf} · STF`, "Resposta no próximo story", { leftColor: IG.mint, rightColor: IG.paper, arrow: true });
-  } }, { h: 1920, fn: (x) => {
-    label(x, "RESPOSTA", 80, 236, IG.jade);
-    stamp(x, certo ? "CERTO" : "ERRADO", 0, 430, certo ? IG.jade : IG.red, 150, 80);
-    const c = fitText(x, citation(r), { family: MONO, max: 30, min: 20, lh: 1.55, maxW: 848, maxH: 330 });
-    const top = 600, citeTop = 1920 - 220 - 60 - (c.h + 64);
-    const e = fitText(x, f.expl, { family: SERIF, max: 54, min: 32, lh: 1.36, maxW: 920, maxH: citeTop - top - 50 });
-    if (e.over) warn.push("A explicação da resposta está longa: encurte para caber no story.");
-    drawText(x, e, 80, top, { color: IG.ink, maxW: 920 });
-    rr(x, 80, citeTop, 920, c.h + 64, 14); x.fillStyle = IG.box; x.fill();
-    drawText(x, c, 116, citeTop + 32, { color: IG.ink, maxW: 848 });
-    footer(x, 1920 - 140, perfil ? "@" + perfil.replace(/^@/, "") : "", "Conteúdo não oficial",
-      { leftColor: IG.ink, leftFont: `600 28px ${SANS}`, rightColor: IG.muted, rightFont: `400 24px ${MONO}` });
+  const out = [{ h: 1920, dark: true, fn: (x) => {
+    pill(x, "CERTO OU ERRADO?", 80, ST.top, { font: `600 34px ${SANS}`, bg: IG.mark, fg: IG.ink, h: 64, padX: 28 });
+    if (ramo) txt(x, ramo, 1000, ST.top + 44, `400 26px ${MONO}`, IG.mint, "right");
+    const a = fitSafe(x, f.afirm, { family: SERIF, weight: 500, max: 88, min: 50, lh: 1.14, maxW: 920, maxH: 800 }, warn, "Afirmação do quiz");
+    drawText(x, a, 80, ST.top + 130, { color: IG.paper, maxW: 920 });
+    footer(x, ST.bottom + 80, `Informativo ${r.inf} · STF`, "Resposta no próximo story", { leftColor: IG.mint, rightColor: IG.paper, arrow: true });
   } }];
+  const mx = x0();
+  const c = fitSafe(mx, citation(r), { family: MONO, max: 30, min: 18, lh: 1.5, maxW: 848, maxH: 420 }, warn, "Citação");
+  const citeH = c.h + 64, limit = ST.bottom - 50, top1 = ST.top + 390, topN = ST.top + 90;
+  const pages = paginate(mx, f.expl, { family: SERIF, max: 54, min: 34, lh: 1.36, maxW: 920, maxH: limit - top1 - citeH - 40 }, limit - topN - citeH - 40);
+  if (pages.length > 1) warn.push(`A explicação é longa e foi dividida em ${pages.length} stories de resposta.`);
+  pages.forEach((pg, i) => out.push({ h: 1920, fn: (x) => {
+    label(x, "RESPOSTA" + (pages.length > 1 ? ` (${i + 1}/${pages.length})` : ""), 80, ST.top + 30, IG.jade);
+    if (i === 0) stamp(x, certo ? "CERTO" : "ERRADO", 0, ST.top + 200, certo ? IG.jade : IG.red, 150, 80);
+    drawText(x, pg, 80, i === 0 ? top1 : topN, { color: IG.ink, maxW: 920 });
+    if (i === pages.length - 1) {
+      const cy = limit - citeH;
+      rr(x, 80, cy, 920, citeH, 14); x.fillStyle = IG.box; x.fill();
+      drawText(x, c, 116, cy + 32, { color: IG.ink, maxW: 848 });
+    }
+    footer(x, ST.bottom + 80, perfil ? "@" + perfil.replace(/^@/, "") : "", i < pages.length - 1 ? "Continua no próximo story" : "Conteúdo não oficial",
+      { leftColor: IG.ink, leftFont: `600 28px ${SANS}`, rightColor: IG.muted, rightFont: `400 24px ${MONO}` });
+  } }));
+  return out;
 }
 
 function slidesTese(r, f, warn) {
-  const tema = r.temas[0];
-  return [{ h: 1350, fn: (x) => {
+  const tema = r.temas[0], mx = x0();
+  const title = fitSafe(mx, f.titulo, { family: SERIF, weight: 500, max: 46, min: 32, lh: 1.2, maxW: 920, maxH: 180 }, warn, "Título");
+  const topH = tema ? 190 : 0, top = 150, bottom = 1210;
+  const firstH = bottom - top - (tema ? topH + 30 : 0) - title.h - 30 - 40;
+  const pages = paginate(mx, f.teseCard, { family: SERIF, style: "italic", max: 38, min: 26, lh: 1.45, maxW: 920, maxH: firstH }, bottom - top - 40);
+  if (pages.length > 1) warn.push(`A tese é longa e foi dividida em ${pages.length} cards: publique-os juntos, como carrossel.`);
+  const left = `${procsShort(r)} · Info ${r.inf}`;
+  return pages.map((pg, i) => ({ h: 1350, fn: (x, n, t) => {
     pill(x, "TESE DO DIA", 80, 70, { font: `600 24px ${SANS}`, bg: IG.dark, fg: IG.mark });
-    if (r.rg) txt(x, "REPERCUSSÃO GERAL", 1000, 104, `400 24px ${MONO}`, IG.muted, "right", 1.5);
-    const title = fitText(x, f.titulo, { family: SERIF, weight: 500, max: 46, min: 32, lh: 1.2, maxW: 920, maxH: 180 });
-    const topH = tema ? 190 : 0;
-    const avail = 1350 - 150 - 150 - topH - title.h - 70;
-    const t = fitText(x, f.teseCard, { family: SERIF, style: "italic", max: 38, min: 24, lh: 1.45, maxW: 920, maxH: avail });
-    if (t.over) warn.push("A tese não cabe num card: use o carrossel, que divide o texto em vários slides.");
+    const tag = [r.rg ? "REPERCUSSÃO GERAL" : "", t > 1 ? `${n}/${t}` : ""].filter(Boolean).join(" · ");
+    if (tag) txt(x, tag, 1000, 104, `400 24px ${MONO}`, IG.muted, "right", 1.5);
     const items = [];
-    if (tema) items.push({ h: topH, draw: y => { txt(x, "TEMA", 80, y + 160, `600 36px ${SANS}`, IG.jade, "left", 3); txt(x, dotNum(tema), 210, y + 170, `500 200px ${SERIF}`, IG.jade, "left", -4); } });
-    items.push({ h: title.h, draw: y => drawText(x, title, 80, y, { color: IG.ink, maxW: 920 }) },
-      { h: t.h + 40, draw: y => { x.fillStyle = IG.line; x.fillRect(80, y, 920, 2); drawText(x, t, 80, y + 40, { color: IG.ink2, maxW: 920 }); } });
-    stack(items, 150, 1210, 30);
-    const left = `${procsShort(r)} · Info ${r.inf}`;
+    if (i === 0) {
+      if (tema) items.push({ h: topH, draw: y => { txt(x, "TEMA", 80, y + 160, `600 36px ${SANS}`, IG.jade, "left", 3); txt(x, dotNum(tema), 210, y + 170, `500 200px ${SERIF}`, IG.jade, "left", -4); } });
+      items.push({ h: title.h, draw: y => drawText(x, title, 80, y, { color: IG.ink, maxW: 920 }) });
+    }
+    items.push({ h: pg.h + 40, draw: y => { x.fillStyle = IG.line; x.fillRect(80, y, 920, 2); drawText(x, pg, 80, y + 40, { color: IG.ink2, maxW: 920 }); } });
+    stack(items, top, bottom, 30);
     footer(x, 1350, left.length > 52 ? `Informativo ${r.inf} · ${fmtDate(r.date)}` : left, perfil ? "@" + perfil.replace(/^@/, "") : "",
       { leftColor: IG.muted, leftFont: `400 24px ${MONO}`, rightColor: IG.ink, rightFont: `600 26px ${SANS}` });
-  } }];
+  } }));
 }
 
 function slidesDados(L, f, warn) {
   return [{ h: 1350, dark: true, fn: (x) => {
     txt(x, "OS INFORMATIVOS DO STF EM NÚMEROS", 80, 100, `400 24px ${MONO}`, IG.mint, "left", 2);
-    const t = fitText(x, f.dTitle, { family: SERIF, weight: 500, max: 78, min: 52, lh: 1.1, maxW: 920, maxH: 300 });
+    const t = fitSafe(x, f.dTitle, { family: SERIF, weight: 500, max: 78, min: 52, lh: 1.1, maxW: 920, maxH: 300 }, warn, "Título");
     drawText(x, t, 80, 140, { color: IG.paper, maxW: 920 });
     const rows = L.rows, max = Math.max(1, ...rows.map(r => r.c));
     let y = 140 + t.h + 90;
@@ -1519,21 +1549,33 @@ function slidesDados(L, f, warn) {
       rr(x, 80, y + 70, Math.max(8, 920 * row.c / max), 22, 6); x.fillStyle = IG.mark; x.fill();
       y += rowH;
     });
-    const note = fitText(x, L.note, { family: SANS, max: 22, min: 18, lh: 1.45, maxW: 700, maxH: 110 });
+    const note = fitSafe(x, L.note, { family: SANS, max: 22, min: 18, lh: 1.45, maxW: 700, maxH: 110 }, warn, "Nota");
     drawText(x, note, 80, 1350 - 80 - note.h + 8, { color: IG.mint, maxW: 700 });
     if (perfil) txt(x, "@" + perfil.replace(/^@/, ""), 1000, 1270, `600 26px ${SANS}`, IG.paper, "right");
   } }];
 }
 
-function postCaption() {
-  const f = PM.f, r = PM.r;
-  if (!r) return `${plainTxt(f.dTitle)}\n\n${PM.lei.rows.map(x => `${x.lab}${x.desc ? " (" + x.desc + ")" : ""}: ${fmtN(x.c)} julgados`).join("\n")}\n\n${PM.lei.note}\n\n#STF #Jurisprudência #DireitoConstitucional #Concursos #OAB`;
-  const tags = ["#STF", "#Jurisprudência", `#Informativo${r.inf}`, ...r.ramos.slice(0, 2).map(i => tagOf(D.ramos[i])), "#Concursos", "#OAB"].join(" ");
-  if (PM.tpl === "quiz") return `Certo ou errado? ${plainTxt(f.afirm)}\n\nResposta: ${f.resp === "CERTO" ? "certo" : "errado"}.\n\n${plainTxt(f.expl)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
-  if (PM.tpl === "tese") return `${r.temas.length ? `Tema ${dotNum(r.temas[0])} da Repercussão Geral` : "Tese fixada"}: ${plainTxt(f.titulo)}\n\n${plainTxt(f.teseCard)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
-  return `${plainTxt(f.hook)}\n\n${plainTxt(f.texto || f.tese)}\n\n${citation(r)}\n\nConteúdo não oficial, baseado nos Informativos do STF.\n\n${tags}`;
+const CAP_MAX = 2200;
+function capFit(parts, mainIdx) {
+  const join = ps => ps.filter(Boolean).join("\n\n");
+  const s = join(parts);
+  if (s.length <= CAP_MAX) return s;
+  const m = parts[mainIdx] || "", cut = Math.max(0, m.length - (s.length - CAP_MAX) - 2);
+  parts[mainIdx] = m.slice(0, cut).replace(/\s+\S*$/, "") + "…";
+  return join(parts);
 }
-
+function postCaption() {
+  const f = PM.f, r = PM.r, aviso = "Conteúdo não oficial, baseado nos Informativos do STF.";
+  if (!r) return capFit([plainTxt(f.dTitle), PM.lei.rows.map(x => `${x.lab}${x.desc ? " (" + x.desc + ")" : ""}: ${fmtN(x.c)} julgados`).join("\n"), PM.lei.note, "#STF #Jurisprudência #DireitoConstitucional #Concursos #OAB"], 1);
+  const tags = ["#STF", "#Jurisprudência", `#Informativo${r.inf}`, ...r.ramos.slice(0, 2).map(i => tagOf(D.ramos[i])), "#Concursos", "#OAB"].join(" ");
+  if (PM.tpl === "quiz") return capFit([`Certo ou errado? ${plainTxt(f.afirm)}`, `Resposta: ${f.resp === "CERTO" ? "certo" : "errado"}.`, plainTxt(f.expl), citation(r), aviso, tags], 2);
+  if (PM.tpl === "tese") return capFit([`${r.temas.length ? `Tema ${dotNum(r.temas[0])} da Repercussão Geral` : "Tese fixada"}: ${plainTxt(f.titulo)}`, plainTxt(f.teseCard), citation(r), aviso, tags], 1);
+  return capFit([plainTxt(f.hook), plainTxt(f.texto || f.tese), citation(r), aviso, tags], 1);
+}
+function capCount() {
+  const n = $("#pmCap").value.length;
+  $("#pmCapCount").textContent = `${fmtN(n)} / 2.200 caracteres` + (n > CAP_MAX ? " · acima do limite do Instagram" : "");
+}
 function postForm() {
   const f = PM.f, r = PM.r;
   const ta = (k, lab, rows, hint) => `<label for="pf-${k}">${lab}<textarea class="ctl" id="pf-${k}" data-f="${k}" rows="${rows || 3}">${esc(f[k] || "")}</textarea>${hint ? `<span class="hint">${hint}</span>` : ""}</label>`;
@@ -1594,7 +1636,7 @@ async function renderPost() {
   $("#pmImgs").innerHTML = PM.urls.map((u, i) => `<figure><img src="${u}" alt="Imagem ${i + 1} de ${PM.urls.length}" style="aspect-ratio:1080/${specs[i].h}"><figcaption><span>${i + 1}/${PM.urls.length} · 1080×${specs[i].h}</span><a href="${u}" download="${PM.names[i]}">Baixar</a></figcaption></figure>`).join("");
   $("#pmWarn").textContent = warn.join(" ");
   $("#pmStatus").textContent = `${PM.urls.length} ${PM.urls.length === 1 ? "imagem pronta" : "imagens prontas"}`;
-  $("#pmCap").value = postCaption();
+  $("#pmCap").value = postCaption(); capCount();
   let canShare = false;
   try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([blobs[0]], PM.names[0], { type: "image/png" })] })); } catch (e) {}
   $("#pmShare").hidden = !canShare;
@@ -1638,6 +1680,7 @@ function bindPost() {
   });
   $("#pmAll").addEventListener("click", downloadAll);
   $("#pmShare").addEventListener("click", sharePost);
+  $("#pmCap").addEventListener("input", capCount);
   $("#pmCopy").addEventListener("click", () => copyText($("#pmCap").value, "Legenda copiada"));
 }
 
