@@ -1,6 +1,6 @@
 # Atlas dos Informativos STF
 
-Ferramenta de estudo dos Informativos do Supremo Tribunal Federal (1995–2026): 10.657 julgados, com busca, filtros, leitor, flashcards, índice por dispositivo legal e painel de temas de repercussão geral.
+Ferramenta de estudo dos Informativos do Supremo Tribunal Federal (1995–2026): 10.680 julgados, com busca, filtros, leitor, flashcards, índice por dispositivo legal e painel de temas de repercussão geral.
 
 **Acesse:** https://rezende-lucas.github.io/atlas-informativos-stf/
 
